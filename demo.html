@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo Integración SDK</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: #f4f4f5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .card {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        text-align: center;
+      }
+      h1 {
+        color: #18181b;
+      }
+      p {
+        color: #52525b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Mi Tienda Online</h1>
+      <p>
+        Esta es una página de prueba. Mira abajo a la derecha para ver el widget
+        de feedback flotante.
+      </p>
+      <p>
+        <small
+          >Prueba desconectar tu internet y enviar feedback para ver el sistema
+          de reintentos.</small
+        >
+      </p>
+    </div>
+
+    <script src="./dist/feedback-sdk.umd.js"></script>
+
+    <script>
+      // Aseguramos que el script cargó
+      window.addEventListener("load", () => {
+        if (window.FeedbackSDK) {
+          console.log("Inicializando SDK...");
+
+          window.FeedbackSDK.init({
+            projectId: "proyecto_demo_123",
+            apiKey: "pk_public_key_abc",
+
+            // Apuntamos a nuestro backend local (ver Paso 3)
+            apiEndpoint: "http://localhost:3000/api/feedback",
+
+            // Probamos la personalización de estilos (ADR-007)
+            theme: {
+              primaryColor: "#6366f1", // Un color Indigo bonito
+            },
+          });
+        } else {
+          console.error("El SDK no se cargó correctamente.");
+        }
+      });
+    </script>
+  </body>
+</html>
