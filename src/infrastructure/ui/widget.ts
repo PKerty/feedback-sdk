@@ -25,11 +25,29 @@ export class FeedbackWidget {
 	}
 
 	private applyTheme() {
-		if (this.config.theme?.primaryColor) {
-			(
-				this.root.querySelector(".widget-container") as HTMLElement
-			).style.setProperty("--fdbk-primary", this.config.theme.primaryColor);
-		}
+		const theme = this.config.theme;
+		if (!theme) return;
+		const container = this.root.querySelector(
+			".widget-container",
+		) as HTMLElement;
+
+		// Mapa de configuración -> Variable CSS
+		const mappings: Record<string, string> = {
+			primaryColor: "--fdbk-primary",
+			backgroundColor: "--fdbk-bg",
+			textColor: "--fdbk-text",
+			borderColor: "--fdbk-border",
+			inputBackgroundColor: "--fdbk-input-bg",
+		};
+
+		// Iteramos e inyectamos
+		Object.keys(mappings).forEach((key) => {
+			// @ts-ignore: Acceso dinámico simple
+			if (theme[key]) {
+				// @ts-ignore
+				container.style.setProperty(mappings[key], theme[key]);
+			}
+		});
 	}
 
 	private render() {

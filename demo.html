@@ -47,28 +47,24 @@
       </p>
     </div>
 
-    <script src="./dist/feedback-sdk.umd.js"></script>
-
+    <script src="./feedback-sdk.umd.js"></script>
     <script>
-      // Aseguramos que el script cargó
       window.addEventListener("load", () => {
         if (window.FeedbackSDK) {
-          console.log("Inicializando SDK...");
-
           window.FeedbackSDK.init({
-            projectId: "proyecto_demo_123",
-            apiKey: "pk_public_key_abc",
-
-            // Apuntamos a nuestro backend local (ver Paso 3)
+            projectId: "demo_dark",
+            apiKey: "pk_test",
             apiEndpoint: "http://localhost:3000/api/feedback",
 
-            // Probamos la personalización de estilos (ADR-007)
+            // CONFIGURACIÓN DARK MODE 🌙
             theme: {
-              primaryColor: "#6366f1", // Un color Indigo bonito
+              primaryColor: "#8b5cf6", // Un violeta brillante
+              backgroundColor: "#18181b", // Gris muy oscuro (casi negro)
+              textColor: "#f4f4f5", // Blanco hueso
+              borderColor: "#3f3f46", // Gris medio para bordes
+              inputBackgroundColor: "#27272a", // Un poco más claro que el fondo
             },
           });
-        } else {
-          console.error("El SDK no se cargó correctamente.");
         }
       });
     </script>

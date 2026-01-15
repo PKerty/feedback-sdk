@@ -2,11 +2,20 @@ import * as v from "valibot";
 
 // Esquema de Configuración
 export const ConfigSchema = v.object({
-	// Usamos pipe para validar longitud mínima
 	projectId: v.pipe(v.string(), v.minLength(1, "Project ID es requerido")),
 	apiKey: v.pipe(v.string(), v.minLength(1, "API Key es requerida")),
-	// URL validation
 	apiEndpoint: v.optional(v.pipe(v.string(), v.url("Debe ser una URL válida"))),
+
+	// AQUÍ ESTÁ EL CAMBIO: Agregamos todos los campos del tema
+	theme: v.optional(
+		v.object({
+			primaryColor: v.optional(v.string()),
+			backgroundColor: v.optional(v.string()), // <-- Nuevo
+			textColor: v.optional(v.string()), // <-- Nuevo
+			borderColor: v.optional(v.string()), // <-- Nuevo
+			inputBackgroundColor: v.optional(v.string()), // <-- Nuevo
+		}),
+	),
 });
 
 // Esquema del Payload (Feedback)
