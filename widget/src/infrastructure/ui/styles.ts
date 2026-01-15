@@ -120,8 +120,14 @@ export const componentStyles = `
   .submit-btn:hover { opacity: 0.9; }
   .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* Vistas de error */
+  /* Vistas de estados */
   .hidden { display: none !important; }
+  .success-view { text-align: center; padding: 20px 0; color: var(--fdbk-primary, #10b981); }
+  .success-view p { color: var(--fdbk-text); margin: 10px 0 20px 0; }
+
+  .rate-limit-view { text-align: center; padding: 20px 0; color: var(--fdbk-text-secondary, #f59e0b); }
+  .rate-limit-view p { color: var(--fdbk-text); margin: 10px 0 20px 0; }
+
   .error-view { text-align: center; padding: 20px 0; color: #ef4444; }
   .error-view p { color: var(--fdbk-text-secondary); margin: 10px 0 20px 0; }
 
