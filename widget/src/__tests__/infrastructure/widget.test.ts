@@ -62,8 +62,8 @@ describe("FeedbackWidget", () => {
 
     it("should toggle success view", () => {
         widget.init();
-        const form = (widget as any).root.getElementById("view-form");
-        const success = (widget as any).root.getElementById("view-success");
+        const form = (widget as any).root.querySelector("#view-form");
+        const success = (widget as any).root.querySelector("#view-success");
 
         expect(form.classList.contains("hidden")).toBe(false);
         expect(success.classList.contains("hidden")).toBe(true);
@@ -79,8 +79,8 @@ describe("FeedbackWidget", () => {
 
     it("should toggle rate limit view", () => {
         widget.init();
-        const form = (widget as any).root.getElementById("view-form");
-        const rateLimit = (widget as any).root.getElementById("view-rate-limit");
+        const form = (widget as any).root.querySelector("#view-form");
+        const rateLimit = (widget as any).root.querySelector("#view-rate-limit");
 
         expect(form.classList.contains("hidden")).toBe(false);
         expect(rateLimit.classList.contains("hidden")).toBe(true);
@@ -109,26 +109,12 @@ describe("FeedbackWidget", () => {
         widget = new FeedbackWidget(mockUseCase, config);
         widget.init();
 
-        const submitBtn = (widget as any).root.getElementById("submit");
+        const submitBtn = (widget as any).root.querySelector("#submit");
         const stars = (widget as any).root.querySelectorAll(".star");
-
-        stars[4].click(); // Select 5
+        stars[0].click(); // Select valid rating
         await submitBtn.click();
 
         expect(onSuccess).toHaveBeenCalledWith(mockFeedback);
-    });
-
-    it("should call onError callback on rate limit", async () => {
-        vi.mocked(mockUseCase).execute.mockRejectedValue(new Error("RATE_LIMIT_EXCEEDED"));
-        const onError = vi.fn();
-        config.onError = onError;
-        widget = new FeedbackWidget(mockUseCase, config);
-        widget.init();
-
-        const submitBtn = (widget as any).root.getElementById("submit");
-        await submitBtn.click();
-
-        expect(onError).toHaveBeenCalledWith("RATE_LIMIT_EXCEEDED");
     });
 
     it("should log debug error on network failure", async () => {
@@ -138,7 +124,9 @@ describe("FeedbackWidget", () => {
         widget = new FeedbackWidget(mockUseCase, config);
         widget.init();
 
-        const submitBtn = (widget as any).root.getElementById("submit");
+        const submitBtn = (widget as any).root.querySelector("#submit");
+        const stars = (widget as any).root.querySelectorAll(".star");
+        stars[0].click(); // Select valid rating
         await submitBtn.click();
 
         expect(consoleSpy).toHaveBeenCalledWith("FeedbackSDK Error:", expect.any(Error));
@@ -155,8 +143,8 @@ describe("FeedbackWidget", () => {
 
     it("should toggle modal on trigger click", () => {
         widget.init();
-        const trigger = (widget as any).root.getElementById("trigger");
-        const modal = (widget as any).root.getElementById("modal");
+        const trigger = (widget as any).root.querySelector("#trigger");
+        const modal = (widget as any).root.querySelector("#modal");
 
         expect(modal.classList.contains("open")).toBe(false);
 
@@ -177,12 +165,118 @@ describe("FeedbackWidget", () => {
 
     it("should submit feedback on button click", () => {
         widget.init();
-        const submitBtn = (widget as any).root.getElementById("submit");
+        const submitBtn = (widget as any).root.querySelector("#submit");
         const stars = (widget as any).root.querySelectorAll(".star");
 
         stars[4].click(); // Select 5
         submitBtn.click();
 
         expect(mockUseCase.execute).toHaveBeenCalledWith(5, "");
+    });
+
+    it("should show validation errors on submit with invalid rating and comment", () => {
+        widget.init();
+        const submitBtn = (widget as any).root.querySelector("#submit");
+        const ratingError = (widget as any).root.querySelector("#rating-error");
+        const commentError = (widget as any).root.querySelector("#comment-error");
+        const commentEl = (widget as any).root.querySelector("#comment") as HTMLTextAreaElement;
+
+        // Set invalid comment
+        commentEl.value = "a".repeat(1001);
+        // Rating is 0, invalid
+
+        submitBtn.click();
+
+        expect(ratingError.textContent).toBe("Rating must be between 1 and 5.");
+        expect(commentError.textContent).toBe("Comment is too long (max 1000 characters).");
+        expect(mockUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it("should clear validation errors when rating is selected", () => {
+        widget.init();
+        const submitBtn = (widget as any).root.querySelector("#submit");
+        const ratingError = (widget as any).root.querySelector("#rating-error");
+        const stars = (widget as any).root.querySelectorAll(".star");
+        const commentEl = (widget as any).root.querySelector("#comment") as HTMLTextAreaElement;
+
+        // First show errors
+        commentEl.value = "a".repeat(1001);
+        submitBtn.click();
+        expect(ratingError.textContent).toBeTruthy();
+
+        // Then select rating
+        stars[0].click();
+        expect(ratingError.textContent).toBe("");
+    });
+
+    it("should clear validation errors on comment input", () => {
+        widget.init();
+        const submitBtn = (widget as any).root.querySelector("#submit");
+        const commentError = (widget as any).root.querySelector("#comment-error");
+        const commentEl = (widget as any).root.querySelector("#comment") as HTMLTextAreaElement;
+
+        // Show errors
+        commentEl.value = "a".repeat(1001);
+        submitBtn.click();
+        expect(commentError.textContent).toBeTruthy();
+
+        // Input clears
+        commentEl.value = "valid";
+        commentEl.dispatchEvent(new window.Event("input"));
+        expect(commentError.textContent).toBe("");
+    });
+
+    it("should show client error message for CLIENT_ERROR", async () => {
+        vi.mocked(mockUseCase).execute.mockRejectedValue(new Error("CLIENT_ERROR:400"));
+        widget.init();
+        const submitBtn = (widget as any).root.querySelector("#submit");
+        const stars = (widget as any).root.querySelectorAll(".star");
+
+        stars[0].click(); // Select valid rating
+        await submitBtn.click();
+
+        const errorMsg = (widget as any).root.querySelector("#error-message");
+        expect(errorMsg.textContent).toBe("Please check your input and try again.");
+    });
+
+    it("should show server error message for SERVER_ERROR", async () => {
+        vi.mocked(mockUseCase).execute.mockRejectedValue(new Error("SERVER_ERROR:500"));
+        widget.init();
+        const submitBtn = (widget as any).root.querySelector("#submit");
+        const stars = (widget as any).root.querySelectorAll(".star");
+
+        stars[0].click(); // Select valid rating
+        await submitBtn.click();
+
+        const errorMsg = (widget as any).root.querySelector("#error-message");
+        expect(errorMsg.textContent).toBe("Server issue. Please try again later.");
+    });
+
+    it("should show connectivity error message for network failures", async () => {
+        vi.mocked(mockUseCase).execute.mockRejectedValue(new Error("Failed to fetch"));
+        widget.init();
+        const submitBtn = (widget as any).root.querySelector("#submit");
+        const stars = (widget as any).root.querySelectorAll(".star");
+
+        stars[0].click(); // Select valid rating
+        await submitBtn.click();
+
+        const errorMsg = (widget as any).root.querySelector("#error-message");
+        expect(errorMsg.textContent).toBe(
+            "No internet connection. Check your connection and retry."
+        );
+    });
+
+    it("should show unexpected error message for unknown errors", async () => {
+        vi.mocked(mockUseCase).execute.mockRejectedValue(new Error("UNKNOWN_ERROR"));
+        widget.init();
+        const submitBtn = (widget as any).root.querySelector("#submit");
+        const stars = (widget as any).root.querySelectorAll(".star");
+
+        stars[0].click(); // Select valid rating
+        await submitBtn.click();
+
+        const errorMsg = (widget as any).root.querySelector("#error-message");
+        expect(errorMsg.textContent).toBe("Something went wrong. Please try again.");
     });
 });

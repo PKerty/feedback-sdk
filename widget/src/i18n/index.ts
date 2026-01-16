@@ -1,6 +1,8 @@
 import { translations } from "./translations";
 import type { Locale, TranslationKey } from "./translations";
 
+export type { TranslationKey };
+
 export function t(key: TranslationKey, locale = "en"): string {
     const loc = locale as Locale;
     if (!translations[loc]) {

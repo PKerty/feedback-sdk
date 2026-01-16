@@ -1,8 +1,11 @@
 import type { SDKConfig } from "../../domain/feedback";
 import { SubmitFeedbackUseCase } from "../../application/submitFeedback";
+import { FeedbackSchema } from "../../domain/validation";
 import { componentStyles } from "./styles";
 import { ICONS } from "./icons";
 import { t } from "../../i18n";
+import type { TranslationKey } from "../../i18n";
+import * as v from "valibot";
 
 export class FeedbackWidget {
     private root: ShadowRoot;
@@ -62,12 +65,14 @@ export class FeedbackWidget {
         <div id="view-form" class="view-section">
             <h3>${t("title", this.config.locale)}</h3>
             <div class="stars" id="stars-container">${this.renderStars()}</div>
+            <div class="error" id="rating-error"></div>
             <textarea id="comment" placeholder="${t("commentPlaceholder", this.config.locale)}"></textarea>
+            <div class="error" id="comment-error"></div>
             <button id="submit" class="submit-btn">${t("submit", this.config.locale)}</button>
         </div>
         <div id="view-error" class="view-section hidden error-view">
             ${ICONS.alert}
-            <p>${t("error", this.config.locale)}</p>
+            <p id="error-message">${t("error", this.config.locale)}</p>
             <button id="retry" class="retry-btn">${ICONS.refresh} ${t("retry", this.config.locale)}</button>
             <button id="cancel" class="cancel-link">${t("cancel", this.config.locale)}</button>
         </div>
@@ -93,12 +98,12 @@ export class FeedbackWidget {
     }
 
     private bindEvents(): void {
-        const triggerBtn = this.root.getElementById("trigger");
-        const modal = this.root.getElementById("modal");
+        const triggerBtn = this.root.querySelector("#trigger");
+        const modal = this.root.querySelector("#modal");
         const stars = this.root.querySelectorAll(".star");
-        const submitBtn = this.root.getElementById("submit");
-        const retryBtn = this.root.getElementById("retry");
-        const cancelBtn = this.root.getElementById("cancel");
+        const submitBtn = this.root.querySelector("#submit");
+        const retryBtn = this.root.querySelector("#retry");
+        const cancelBtn = this.root.querySelector("#cancel");
 
         // 1. Lógica de Apertura/Cierre (Usa this.isOpen)
         triggerBtn?.addEventListener("click", () => {
@@ -119,12 +124,26 @@ export class FeedbackWidget {
                 const target = e.currentTarget as HTMLElement;
                 this.rating = parseInt(target.dataset.value || "0");
                 this.updateStars(stars);
+                this.clearValidationErrors();
             });
+        });
+
+        // 2.5. Clear errors on comment input
+        const commentEl = this.root.getElementById("comment") as HTMLTextAreaElement;
+        commentEl.addEventListener("input", () => {
+            this.clearValidationErrors();
         });
 
         // 3. Lógica de Envío
         const handleSubmit = async (): Promise<void> => {
-            const comment = (this.root.getElementById("comment") as HTMLTextAreaElement).value;
+            const comment = (this.root.querySelector("#comment") as HTMLTextAreaElement).value;
+
+            // Client-side validation
+            const validation = this.validateForm(this.rating, comment);
+            if (!validation.isValid) {
+                this.showValidationErrors(validation.errors);
+                return;
+            }
 
             this.toggleLoading(true); // <-- Iniciamos carga
             try {
@@ -137,15 +156,16 @@ export class FeedbackWidget {
                 if (e.message === "RATE_LIMIT_EXCEEDED") {
                     this.toggleRateLimitView(true);
                     if (this.config.onError) {
-                        this.config.onError(e);
+                        this.config.onError(e.message);
                     }
                 } else {
+                    const errorMessageKey = this.getErrorMessageKey(e);
+                    this.toggleErrorView(true, errorMessageKey);
                     if (this.config.debug) {
                         console.error("FeedbackSDK Error:", e);
                     }
-                    this.toggleErrorView(true);
                     if (this.config.onError) {
-                        this.config.onError(e);
+                        this.config.onError(e.message);
                     }
                 }
             } finally {
@@ -160,7 +180,7 @@ export class FeedbackWidget {
             this.toggleErrorView(false);
         });
 
-        const rateLimitOkBtn = this.root.getElementById("rate-limit-ok");
+        const rateLimitOkBtn = this.root.querySelector("#rate-limit-ok");
         rateLimitOkBtn?.addEventListener("click", () => {
             this.toggleRateLimitView(false);
         });
@@ -177,8 +197,8 @@ export class FeedbackWidget {
 
     // IMPLEMENTACIÓN CORREGIDA
     private toggleLoading(isLoading: boolean) {
-        const submitBtn = this.root.getElementById("submit") as HTMLButtonElement;
-        const retryBtn = this.root.getElementById("retry") as HTMLButtonElement;
+        const submitBtn = this.root.querySelector("#submit") as HTMLButtonElement;
+        const retryBtn = this.root.querySelector("#retry") as HTMLButtonElement;
 
         if (!submitBtn || !retryBtn) return;
 
@@ -197,12 +217,16 @@ export class FeedbackWidget {
         }
     }
 
-    private toggleErrorView(show: boolean): void {
-        const form = this.root.getElementById("view-form");
-        const error = this.root.getElementById("view-error");
+    private toggleErrorView(show: boolean, messageKey?: string): void {
+        const form = this.root.querySelector("#view-form");
+        const error = this.root.querySelector("#view-error");
         if (show) {
             form?.classList.add("hidden");
             error?.classList.remove("hidden");
+            if (messageKey) {
+                const msgEl = this.root.querySelector("#error-message");
+                if (msgEl) msgEl.textContent = t(messageKey as TranslationKey, this.config.locale);
+            }
         } else {
             error?.classList.add("hidden");
             form?.classList.remove("hidden");
@@ -210,8 +234,8 @@ export class FeedbackWidget {
     }
 
     private toggleSuccessView(show: boolean): void {
-        const form = this.root.getElementById("view-form");
-        const success = this.root.getElementById("view-success");
+        const form = this.root.querySelector("#view-form");
+        const success = this.root.querySelector("#view-success");
         if (show) {
             form?.classList.add("hidden");
             success?.classList.remove("hidden");
@@ -222,8 +246,8 @@ export class FeedbackWidget {
     }
 
     private toggleRateLimitView(show: boolean): void {
-        const form = this.root.getElementById("view-form");
-        const rateLimit = this.root.getElementById("view-rate-limit");
+        const form = this.root.querySelector("#view-form");
+        const rateLimit = this.root.querySelector("#view-rate-limit");
         if (show) {
             form?.classList.add("hidden");
             rateLimit?.classList.remove("hidden");
@@ -231,5 +255,63 @@ export class FeedbackWidget {
             rateLimit?.classList.add("hidden");
             form?.classList.remove("hidden");
         }
+    }
+
+    private validateForm(
+        rating: number,
+        comment: string
+    ): { isValid: boolean; errors: { rating?: string; comment?: string } } {
+        const rawFeedback = {
+            projectId: this.config.projectId,
+            userId: "dummy",
+            rating,
+            comment,
+            deviceInfo: { userAgent: "", url: "" },
+            timestamp: "",
+        };
+        const result = v.safeParse(FeedbackSchema, rawFeedback);
+        const errors: { rating?: string; comment?: string } = {};
+        if (!result.success) {
+            for (const issue of result.issues) {
+                const pathItem = issue.path?.[0];
+                if (pathItem && typeof pathItem === "object" && "key" in pathItem) {
+                    const field = pathItem.key;
+                    if (field === "rating") {
+                        errors.rating = t("ratingError", this.config.locale);
+                    } else if (field === "comment") {
+                        errors.comment = t("commentError", this.config.locale);
+                    }
+                }
+            }
+        }
+        return { isValid: result.success, errors };
+    }
+
+    private showValidationErrors(errors: { rating?: string; comment?: string }): void {
+        const ratingErrorEl = this.root.querySelector("#rating-error");
+        const commentErrorEl = this.root.querySelector("#comment-error");
+        if (ratingErrorEl) ratingErrorEl.textContent = errors.rating || "";
+        if (commentErrorEl) commentErrorEl.textContent = errors.comment || "";
+    }
+
+    private clearValidationErrors(): void {
+        this.showValidationErrors({});
+    }
+
+    private getErrorMessageKey(
+        error: any
+    ): "clientError" | "serverError" | "connectivityError" | "unexpectedError" {
+        if (error.message.startsWith("CLIENT_ERROR:")) {
+            return "clientError";
+        } else if (error.message.startsWith("SERVER_ERROR:")) {
+            return "serverError";
+        } else if (
+            error.message.includes("fetch") ||
+            error.message.includes("network") ||
+            error.message.includes("Failed to fetch")
+        ) {
+            return "connectivityError";
+        }
+        return "unexpectedError";
     }
 }

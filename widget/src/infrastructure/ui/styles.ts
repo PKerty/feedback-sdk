@@ -100,10 +100,17 @@ export const componentStyles = `
     outline: none;
   }
 
-  textarea:focus {
-    border-color: var(--fdbk-primary, #2563eb);
-    ring: 1px solid var(--fdbk-primary, #2563eb);
-  }
+   textarea:focus {
+     border-color: var(--fdbk-primary, #2563eb);
+     ring: 1px solid var(--fdbk-primary, #2563eb);
+   }
+
+   .error {
+     color: #ef4444;
+     font-size: 12px;
+     margin-bottom: 8px;
+     min-height: 16px; /* Reserve space */
+   }
 
   .submit-btn {
     width: 100%;
