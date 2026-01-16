@@ -10,8 +10,8 @@ export class FeedbackWidget {
     private rating = 0;
 
     private readonly useCase: SubmitFeedbackUseCase;
-    private readonly config: SDKConfig & { locale: "en" | "es" };
-    constructor(useCase: SubmitFeedbackUseCase, config: SDKConfig & { locale: "en" | "es" }) {
+    private readonly config: SDKConfig;
+    constructor(useCase: SubmitFeedbackUseCase, config: SDKConfig) {
         const host = document.createElement("div");
         document.body.appendChild(host);
         this.root = host.attachShadow({ mode: "open" });
@@ -130,22 +130,22 @@ export class FeedbackWidget {
             try {
                 const feedback = await this.useCase.execute(this.rating, comment);
                 this.toggleSuccessView(true);
-                if ((this.config as any).onSuccess) {
-                    (this.config as any).onSuccess(feedback);
+                if (this.config.onSuccess) {
+                    this.config.onSuccess(feedback);
                 }
             } catch (e: any) {
                 if (e.message === "RATE_LIMIT_EXCEEDED") {
                     this.toggleRateLimitView(true);
-                    if ((this.config as any).onError) {
-                        (this.config as any).onError(e.message);
+                    if (this.config.onError) {
+                        this.config.onError(e);
                     }
                 } else {
-                    if ((this.config as any).debug) {
+                    if (this.config.debug) {
                         console.error("FeedbackSDK Error:", e);
                     }
                     this.toggleErrorView(true);
-                    if ((this.config as any).onError) {
-                        (this.config as any).onError(e.message || "Unknown error");
+                    if (this.config.onError) {
+                        this.config.onError(e);
                     }
                 }
             } finally {

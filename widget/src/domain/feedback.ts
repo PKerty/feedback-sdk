@@ -14,7 +14,11 @@ export interface SDKConfig {
     projectId: string;
     apiKey: string;
     apiEndpoint?: string;
+    debug?: boolean;
+    locale?: "en" | "es";
     theme?: {
         primaryColor?: string;
     };
+    onSuccess?: (feedback: Feedback) => void;
+    onError?: (error: Error) => void;
 }

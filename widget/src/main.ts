@@ -26,7 +26,7 @@ class FeedbackSDK {
         const submitUseCase = new SubmitFeedbackUseCase(repository, storage, config);
 
         // 4. Iniciar UI (Infrastructure - Driving)
-        const widget = new FeedbackWidget(submitUseCase, config as typeof config & { locale: "en" | "es" });
+        const widget = new FeedbackWidget(submitUseCase, config);
         widget.init();
 
         console.log("[FeedbackSDK] Inicializado correctamente");
